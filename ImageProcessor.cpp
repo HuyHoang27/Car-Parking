@@ -355,11 +355,11 @@ cv::Mat ImageProcessor::visualize_lines(cv::Mat image, std::vector<cv::Vec4i>& l
     return image;
 }
 
-std::vector<cv::Vec4i> ImageProcessor::merge_lines(std::vector<cv::Vec4i>& lines,  char type) {
+std::vector<cv::Vec4i> ImageProcessor::merge_lines(std::vector<cv::Vec4i>& lines, char type) {
     std::vector<cv::Vec4i> merged_lines;
     size_t i = 0;
     if (type == 'v') {
-        std::sort(lines.begin(), lines.end(), []( cv::Vec4i& line1,  cv::Vec4i& line2) {
+        std::sort(lines.begin(), lines.end(), [](cv::Vec4i& line1, cv::Vec4i& line2) {
             return (line1[1] / 40 < line2[1] / 40) || ((line1[1] / 40 == line2[1] / 40) && (line1[0] < line2[0]));
         });
 
@@ -385,7 +385,7 @@ std::vector<cv::Vec4i> ImageProcessor::merge_lines(std::vector<cv::Vec4i>& lines
             i = next_i;
         }
     } else if (type == 'h') {
-        std::sort(lines.begin(), lines.end(), []( cv::Vec4i& line1,  cv::Vec4i& line2) {
+        std::sort(lines.begin(), lines.end(), [](cv::Vec4i& line1, cv::Vec4i& line2) {
             return (line1[0] / 40 < line2[0] / 40) || ((line1[0] / 40 == line2[0] / 40) && (line1[1] < line2[1]));
         });
 
@@ -455,12 +455,12 @@ std::pair<std::vector<cv::Vec4i>, std::vector<cv::Vec4i>> ImageProcessor::detect
     std::vector<cv::Vec4i> horizontal_lines;
     std::vector<cv::Vec4i> vertical_lines;
 
-    cv::Mat blurred = ImageProcessor::blur_image(edged);
+    // cv::Mat blurred = ImageProcessor::blur_image(edged);
 
     std::vector<cv::Vec4i> lines;
-    cv::HoughLinesP(blurred, lines, 2, CV_PI / 180, 50, 40, 20);
+    cv::HoughLinesP(edged, lines, 1, CV_PI / 180, 50, 30, 17);
 
-    double max_line_length = 95;
+    double max_line_length = 100;
 
     if (!lines.empty()) {
         for ( auto& line : lines) {
@@ -472,7 +472,7 @@ std::pair<std::vector<cv::Vec4i>, std::vector<cv::Vec4i>> ImageProcessor::detect
             double angle = std::atan2(y2 - y1, x2 - x1) * 180.0 / CV_PI;
             double length = std::sqrt(std::pow(x2 - x1, 2) + std::pow(y2 - y1, 2));
 
-            if ((std::abs(std::fmod(angle, 180.0)) < 20 && ((30 < x1 && x1 < 150 && 30 < x2 && x2 < 150) || (1100 < x1 && x1 < 1200 && 1100 < x2 && x2 < 1200))) && length < max_line_length) {
+            if ((std::abs(std::fmod(angle, 180.0)) < 20 && ((30 < x1 && x1 < 150 && 30 < x2 && x2 < 150) || (1100 < x1 && x1 < 1190 && 1100 < x2 && x2 < 1190))) && length < max_line_length) {
                 int y_coordinate = (y1 + y2) / 2;
                 horizontal_lines.push_back({ std::min(x1, x2), y_coordinate, std::max(x1, x2), y_coordinate });
             } else if ((std::abs(std::fmod((angle + 90), 180.0)) < 20 && 200 < x1 && x1 < 1100 && 200 < x2 && x2 < 1100 && 50 < y1 && y1 < 990 && 50 < y2 && y2 < 990) && length < max_line_length) {
@@ -493,35 +493,65 @@ std::pair<std::vector<cv::Vec4i>, std::vector<cv::Vec4i>> ImageProcessor::detect
     return { adjusted_horizontal_lines, adjusted_vertical_lines };
 }
 
-cv::Mat ImageProcessor::draw_parking_spaces( cv::Mat& image,  std::vector<cv::Vec4i>& lines,  char type) {
+cv::Mat ImageProcessor::draw_parking_spaces( cv::Mat& image,  std::vector<cv::Vec4i>& lines,  char type,const std::string& filename) {
     cv::Mat image_copy = image.clone();
 
     if (type == 'h') {
         std::sort(lines.begin(), lines.end(), []( cv::Vec4i& line1,  cv::Vec4i& line2) {
-            return (line1[0] / 40 < line2[0] / 40) || ((line1[0] / 40 == line2[0] / 40) && (line1[1] < line2[1]));
+            return (line1[0] / 40 < line2[0] / 40) || ((line1[0] / 40 == line2[0] /40) && (line1[1] < line2[1]));
         });
     } else if (type == 'v') {
         std::sort(lines.begin(), lines.end(), []( cv::Vec4i& line1,  cv::Vec4i& line2) {
             return (line1[1] / 40 < line2[1] / 40) || ((line1[1] / 40 == line2[1] / 40) && (line1[0] < line2[0]));
         });
     }
-
-    for (size_t i = 0; i < lines.size() - 1; ++i) {
-        cv::Vec4i line1 = lines[i];
-        cv::Vec4i line2 = lines[i + 1];
-
-        int x_min = std::min({ line1[0], line1[2], line2[0], line2[2] });
-        int x_max = std::max({ line1[0], line1[2], line2[0], line2[2] });
-        int y_min = std::min({ line1[1], line1[3], line2[1], line2[3] });
-        int y_max = std::max({ line1[1], line1[3], line2[1], line2[3] });
-
-        int width = std::abs(x_max - x_min);
-        int height = std::abs(y_max - y_min);
-        int area = width * height;
-        if (200 < area && area < 6000) {
-            cv::rectangle(image_copy, cv::Point(x_min, y_min), cv::Point(x_max, y_max), cv::Scalar(255), 2);
-        }
+    std::ofstream outfile;
+    if (!filename.empty()) {
+        outfile.open(filename,std::ios::app);
     }
+    for (size_t i = 0; i < lines.size() - 1; ++i) {
+            cv::Vec4i line1 = lines[i];
+            cv::Vec4i line2 = lines[i + 1];
+
+            int x_min = std::min({ line1[0], line1[2], line2[0], line2[2] });
+            int x_max = std::max({ line1[0], line1[2], line2[0], line2[2] });
+            int y_min = std::min({ line1[1], line1[3], line2[1], line2[3] });
+            int y_max = std::max({ line1[1], line1[3], line2[1], line2[3] });
+            // int x_center = (x_max + x_min) / 2;
+            // int y_center = (y_max + y_min) / 2;
+            int width = std::abs(x_max - x_min);
+            int height = std::abs(y_max - y_min);
+            int area = width * height;
+            if (2000 < area && area < 6000 && width <100 && height < 100) {
+                outfile << x_min << " " << y_min << " " << x_max << " " << y_max << std::endl;
+                if (image_copy.channels() == 1){
+                    // cv::rectangle(image_copy, cv::Point(x_center-width/2, y_center-height/2), cv::Point(x_center+width/2, y_center+height/2), cv::Scalar(255), 2);
+                    cv::rectangle(image_copy, cv::Point(x_min,y_min), cv::Point(x_max,y_max), cv::Scalar(255), 2);
+                }
+                else{
+                    cv::rectangle(image_copy, cv::Point(x_min,y_min), cv::Point(x_max,y_max), cv::Scalar(0, 0, 255), 2);
+                }
+            }
+        }
+    outfile.close();
 
     return image_copy;
+}
+void ImageProcessor::print_parking_spaces(const std::string& filename){
+    std::ifstream infile(filename);
+    if (!infile.is_open()) {
+        std::cerr << "Failed to open file!" << filename << std::endl;
+        return;
+    }
+    std::string line;
+    int i = 0;
+    while (std::getline(infile, line)) {
+        std::istringstream iss(line);
+        int x_min, y_min, x_max, y_max;
+        if (iss >> x_min >> y_min >> x_max >> y_max) {
+            std::cout << "Parking space "<< i << " : [" << x_min << ", " << y_min << ", " << x_max << ", " << y_max << "]"<< std::endl;
+        }
+        ++i;
+    }
+    infile.close();
 }

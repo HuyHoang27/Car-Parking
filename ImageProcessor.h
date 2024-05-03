@@ -36,7 +36,8 @@ public:
     std::vector<cv::Vec4i> adjust_line_length( std::vector<cv::Vec4i>& lines, double target_length);
     cv::Mat edge_detect(cv::Mat image);
     std::pair<std::vector<cv::Vec4i>, std::vector<cv::Vec4i>> detect_lines( cv::Mat& edged);
-    cv::Mat draw_parking_spaces( cv::Mat& image,  std::vector<cv::Vec4i>& lines,  char type);
+    cv::Mat draw_parking_spaces( cv::Mat& image,  std::vector<cv::Vec4i>& lines,  char type,const  std::string& file_name = "");
+    void print_parking_spaces(const std::string& filename);
 };
 
 

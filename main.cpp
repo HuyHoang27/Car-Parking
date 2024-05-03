@@ -39,17 +39,15 @@ vector<Point2f> readPointsFromFile(const string& filename) {
 
 int main( int _argc, char** _argv )
 {
-    // Images
     Mat inputImg, inputImgGray;
     Mat outputImg;
     
     if( _argc != 4 )
     {
-        cout << "Usage: car-parking.exe <imagefolder> <points_origin_folder> <points_dst_folder>" << endl;
+        cout << "Usage: ipm.exe <imagefolder> <points_origin_folder> <points_dst_folder>" << endl;
         return 1;
     }
 
-    // Load image
     string imageFolder = _argv[1];
     string origPointsFolder = _argv[2];
     string dstPointsFolder = _argv[3];
@@ -66,13 +64,11 @@ int main( int _argc, char** _argv )
         //
         std::vector<cv::Point2f> src = processor.processImageAndDetectQuadrilateral(inputImg);
         processor.findQuadrilateralFromPointsAndSave(src,"Points/origin/" + to_string(i));
-        // Color Conversion
         if(inputImg.channels() == 3)     
             cvtColor(inputImg, inputImgGray, COLOR_BGR2GRAY);                  
         else    
             inputImg.copyTo(inputImgGray);                 
         //
-        // Get image dimensions
         int width = inputImg.cols;
         int height = inputImg.rows;
         // The 4-points at the input image    
@@ -130,9 +126,19 @@ int main( int _argc, char** _argv )
 
     cv::Mat box_image = cv::Mat::zeros(gray_image.size(), CV_8UC1);
     string box_image_file = "img_process/box.jpg";
-    box_image = prc.draw_parking_spaces(box_image,vertical_lines,'v');
-    box_image = prc.draw_parking_spaces(box_image,horizontal_lines,'h');
+    // box_image = prc.draw_parking_spaces(box_image,vertical_lines,'v');
+    // box_image = prc.draw_parking_spaces(box_image,horizontal_lines,'h');
+    
+    std::ofstream outfile("img_process/parking_space.txt", std::ios::trunc);
+    box_image = prc.draw_parking_spaces(box_image,vertical_lines,'v',"img_process/parking_space.txt");
+    box_image = prc.draw_parking_spaces(box_image,horizontal_lines,'h',"img_process/parking_space.txt");
     imwrite(box_image_file, box_image);
+    cv::Mat box_result;
+    box_result = prc.draw_parking_spaces(merge_img,vertical_lines,'v');
+    box_result = prc.draw_parking_spaces(box_result,horizontal_lines,'h');
+    string box_result_file = "img_process/box_result.jpg";
+    imwrite(box_result_file, box_result);
+    prc.print_parking_spaces("img_process/parking_space.txt");
     return 0;    
 }  
 
