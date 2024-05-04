@@ -62,12 +62,12 @@ int main( int _argc, char** _argv )
         }
         ImageProcessor processor;
         //
-        std::vector<cv::Point2f> src = processor.processImageAndDetectQuadrilateral(inputImg);
-        processor.findQuadrilateralFromPointsAndSave(src,"Points/origin/" + to_string(i));
-        if(inputImg.channels() == 3)     
-            cvtColor(inputImg, inputImgGray, COLOR_BGR2GRAY);                  
-        else    
-            inputImg.copyTo(inputImgGray);                 
+        // std::vector<cv::Point2f> src = processor.processImageAndDetectQuadrilateral(inputImg);
+        // processor.findQuadrilateralFromPointsAndSave(src,"Points/origin/" + to_string(i));
+        // if(inputImg.channels() == 3)     
+        //     cvtColor(inputImg, inputImgGray, COLOR_BGR2GRAY);                  
+        // else    
+        //     inputImg.copyTo(inputImgGray);                 
         //
         int width = inputImg.cols;
         int height = inputImg.rows;
